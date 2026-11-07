@@ -5,6 +5,8 @@ const path = require('node:path');
 const { Renderer, DEFAULTS, ENGINES } = require(path.join(__dirname, 'renderer.js'));
 const { inspectSvg, makeDarkSvg, useDarkTheme, darkPalette, parseColor } = require(path.join(__dirname, 'theming.js'));
 const { translate, LocalizedError, formatError } = require(path.join(__dirname, 'i18n.js'));
+const logoSvg = require('node:fs').readFileSync(path.join(__dirname, '..', 'assets', 'tikz-native-logo.svg'), 'utf8');
+const logoUrl = 'data:image/svg+xml,' + encodeURIComponent(logoSvg);
 
 class DiagramChild extends MarkdownRenderChild {
   constructor(el, plugin, source, sourcePath) {
@@ -138,7 +140,9 @@ class NativeSettings extends PluginSettingTab {
       return description ? row.setDesc(t(description)) : row;
     };
     el.empty();
-    el.createEl('h2', { text: 'TikZ Native' });
+    const title = el.createEl('h2', { cls: 'tikz-native-settings-title' });
+    title.createEl('img', { attr: { src: logoUrl, alt: '', width: '44', height: '44' } });
+    title.createSpan({ text: 'TikZ Native' });
     setting('language').addDropdown(dropdown => dropdown
       .addOption('zh', '简体中文')
       .addOption('en', 'English')
