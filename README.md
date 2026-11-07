@@ -1,5 +1,7 @@
 # TikZ Native
 
+<img src="assets/tikz-native-logo.svg" alt="TikZ Native logo" width="96" height="96">
+
 Render TikZ code blocks as SVG in Obsidian Desktop using your local LaTeX installation. TikZ Native supports snippets and full LaTeX documents, automatic PDF-to-SVG converter fallback, and transparent diagrams that adapt to dark mode without recompilation.
 
 Choose **Language / 界面语言** in the TikZ Native settings to switch between English and Simplified Chinese. New installations default to English. Existing saved settings without a language preference start in Chinese. Switching updates the interface without recompiling diagrams. Compiler and converter logs retain their original text.

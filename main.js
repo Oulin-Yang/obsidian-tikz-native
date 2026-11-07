@@ -638,6 +638,8 @@ const path = require('node:path');
 const { Renderer, DEFAULTS, ENGINES } = requireRenderer();
 const { inspectSvg, makeDarkSvg, useDarkTheme, darkPalette, parseColor } = requireTheming();
 const { translate, LocalizedError, formatError } = i18n;
+const logoSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"512\" height=\"512\" viewBox=\"0 0 512 512\" role=\"img\" aria-labelledby=\"title desc\">\n  <title id=\"title\">TikZ Native</title>\n  <desc id=\"desc\">White code brackets frame a plotted function on a black tile.</desc>\n\n  <rect x=\"18\" y=\"18\" width=\"476\" height=\"476\" rx=\"111\" fill=\"#000\"/>\n  <rect x=\"21\" y=\"21\" width=\"470\" height=\"470\" rx=\"108\" fill=\"none\" stroke=\"#fff\" stroke-width=\"4\"/>\n\n  <g fill=\"none\" stroke=\"#fff\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\n    <path d=\"M135 200 83 256l52 56m242-112 52 56-52 56\" stroke-width=\"19\"/>\n    <path d=\"M181 174v158h154m-169-143 15-15 15 15m124 128 15 15-15 15\" stroke-width=\"10\"/>\n    <path d=\"M209 303c20 0 32-14 47-49s34-49 66-49\" stroke-width=\"14\"/>\n  </g>\n  <circle cx=\"256\" cy=\"254\" r=\"11\" fill=\"#000\" stroke=\"#fff\" stroke-width=\"7\"/>\n</svg>\n";
+const logoUrl = 'data:image/svg+xml,' + encodeURIComponent(logoSvg);
 
 class DiagramChild extends MarkdownRenderChild {
   constructor(el, plugin, source, sourcePath) {
@@ -771,7 +773,9 @@ class NativeSettings extends PluginSettingTab {
       return description ? row.setDesc(t(description)) : row;
     };
     el.empty();
-    el.createEl('h2', { text: 'TikZ Native' });
+    const title = el.createEl('h2', { cls: 'tikz-native-settings-title' });
+    title.createEl('img', { attr: { src: logoUrl, alt: '', width: '44', height: '44' } });
+    title.createSpan({ text: 'TikZ Native' });
     setting('language').addDropdown(dropdown => dropdown
       .addOption('zh', '简体中文')
       .addOption('en', 'English')
