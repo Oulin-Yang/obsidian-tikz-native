@@ -1,0 +1,17 @@
+{
+  "name": "obsidian-tikz-native",
+  "version": "1.0.8",
+  "private": true,
+  "description": "Native TeX renderer for Obsidian with automatic appearance; no runtime npm dependencies",
+  "scripts": {
+    "test": "node --test tests/unit.test.js tests/theming.test.js",
+    "test:integration": "node --test tests/integration.test.js",
+    "build": "node build.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "@xmldom/xmldom": "^0.9.12"
+  }
+}

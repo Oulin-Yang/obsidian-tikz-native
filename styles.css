@@ -1,0 +1,16 @@
+.tikz-native { overflow-x: auto; padding: .65rem; text-align: center; background: transparent; }
+.tikz-native-page { margin: .5rem auto; width: fit-content; max-width: 100%; background: transparent; }
+.tikz-native-image { display: block; max-width: 100%; height: auto; margin: 0 auto; background: transparent; }
+.tikz-native-paper .tikz-native-image { background: white; }
+.tikz-native-dark-image { display: none; }
+.tikz-native-is-dark .tikz-native-has-adapted .tikz-native-original { display: none; }
+.tikz-native-is-dark .tikz-native-has-adapted .tikz-native-dark-image { display: block; }
+.tikz-native-is-dark .tikz-native-paper { border-radius: 6px; overflow: hidden; outline: 1px solid var(--background-modifier-border, #555); }
+.tikz-native-status { color: var(--text-muted); }
+.tikz-native details { text-align: left; }
+.tikz-native pre, .tikz-native-diagnostics { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 26rem; overflow: auto; text-align: left; user-select: text; }
+@media print {
+  .tikz-native .tikz-native-original { display: block !important; background: white; }
+  .tikz-native .tikz-native-dark-image { display: none !important; }
+  .tikz-native .tikz-native-page { outline: none; }
+}

@@ -1,0 +1,9 @@
+{
+  "id": "tikz-native",
+  "name": "TikZ Native",
+  "version": "1.0.8",
+  "minAppVersion": "1.5.0",
+  "description": "Render TikZ with local LaTeX, automatic PDF-to-SVG converter discovery and fallback.",
+  "author": "Oulin Yang",
+  "isDesktopOnly": true
+}
