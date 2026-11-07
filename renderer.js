@@ -4,6 +4,7 @@ const path = require('node:path');
 const os = require('node:os');
 const { execFile } = require('node:child_process');
 const { createHash } = require('node:crypto');
+const { LocalizedError, formatError } = require('./i18n.js');
 
 const DEFAULTS = Object.freeze({
   engine: 'lualatex', texPath: '', converterPath: '', preamble: '',
@@ -19,18 +20,18 @@ function prepareSource(source, preamble = '') {
   const visible = maskComments(clean);
   const hasClass = /\\documentclass\b/.test(visible);
   const begin = /\\begin\s*\{document\}/.exec(visible);
-  if (hasClass && !begin) throw new Error('完整文档缺少 \\begin{document}。');
-  if (begin && !/\\end\s*\{document\}/.test(visible)) throw new Error('缺少 \\end{document}。');
+  if (hasClass && !begin) throw new LocalizedError('missingBegin');
+  if (begin && !/\\end\s*\{document\}/.test(visible)) throw new LocalizedError('missingEnd');
   if (begin) {
     const pos = hasClass ? /\\documentclass(?:\s*\[[^\]]*\])?\s*\{[^}]*\}/.exec(visible) : null;
-    if (hasClass && !pos) throw new Error('无法识别 documentclass 声明。');
+    if (hasClass && !pos) throw new LocalizedError('invalidClass');
     // Complete documents own their package order/options. Never preload TikZ before xcolor etc.
     if (hasClass) return clean.slice(0, begin.index) + '\n' + preamble + '\n' + clean.slice(begin.index);
     return '\\documentclass[border=3pt]{standalone}\n' + injectTikz(clean.slice(0, begin.index), preamble) + clean.slice(begin.index);
   }
   // Keep package/library declarations before the first environment. Preserve all source whitespace.
   const body = /\\begin\s*\{[^}]+\}|\\(?:tikz\b|draw\b|node\b|path\b|fill\b|filldraw\b|shade\b|clip\b|foreach\b|graph\b)/.exec(visible);
-  if (!body) throw new Error('未找到绘图内容；请使用 tikzpicture、其他绘图环境或完整 LaTeX 文档。');
+  if (!body) throw new LocalizedError('noDrawing');
   const head = clean.slice(0, body.index);
   let content = clean.slice(body.index);
   if (!/^\\begin\s*\{/.test(body[0]) && !/^\\tikz\b/.test(body[0])) {
@@ -50,7 +51,7 @@ function injectTikz(head, preamble) {
 function selectEngine(source, fallback) {
   const directive = /^\s*%\s*!TeX\s+program\s*=\s*([\w-]+)/im.exec(source);
   const engine = directive ? directive[1].toLowerCase() : fallback;
-  if (!ENGINES.includes(engine)) throw new Error('编译器仅支持 lualatex、xelatex、pdflatex。');
+  if (!ENGINES.includes(engine)) throw new LocalizedError('invalidEngine');
   return engine;
 }
 async function executable(name, explicit = '') {
@@ -61,7 +62,7 @@ async function executable(name, explicit = '') {
     const file = path.join(dir, name + (process.platform === 'win32' ? '.exe' : ''));
     try { await fs.access(file, require('node:fs').constants.X_OK); return file; } catch (_) { /* next */ }
   }
-  throw new Error(`找不到 ${name}。请安装完整 TeX Live / MacTeX，并在插件设置中填写程序绝对路径。`);
+  throw new LocalizedError('missingProgram', [name]);
 }
 async function findConverters(explicit = '') {
   const candidates = [];
@@ -74,7 +75,7 @@ async function findConverters(explicit = '') {
   const portable = path.join(os.homedir(), '.cache', 'codex-runtimes', 'codex-primary-runtime', 'dependencies', 'native', 'poppler', 'poppler', 'bin', process.platform === 'win32' ? 'pdftocairo.exe' : 'pdftocairo');
   try { await fs.access(portable, require('node:fs').constants.X_OK); candidates.push(portable); } catch (_) { /* optional */ }
   try { candidates.push(await executable('dvisvgm')); } catch (_) { /* optional */ }
-  if (!candidates.length) throw new Error('找不到 PDF → SVG 转换器。请安装 MuPDF（mutool）、Poppler（pdftocairo + pdfinfo）或带 PDF 支持的 dvisvgm。');
+  if (!candidates.length) throw new LocalizedError('missingConverter');
   return [...new Set(candidates)];
 }
 function needsAnotherPass(log) {
@@ -114,13 +115,15 @@ class Renderer {
   }
   dispose() { this.disposed = true; this.clear(); for (const child of this.children) child.kill('SIGKILL'); }
   run(file, args, options, timeout) {
-    if (this.disposed) return Promise.reject(new Error('插件已停止。'));
+    if (this.disposed) return Promise.reject(new LocalizedError('stopped'));
     return new Promise((resolve, reject) => {
       const child = execFile(file, args, { ...options, timeout: timeout * 1000, killSignal: 'SIGKILL', maxBuffer: 8 * 1024 * 1024, windowsHide: true, shell: false }, (error, stdout, stderr) => {
         this.children.delete(child);
         if (error) {
-          const hint = error.code === 'ENOENT' ? `找不到程序 ${file}。` : error.killed ? `编译超时或被取消（每步上限 ${timeout} 秒）。` : `${path.basename(file)} 运行失败。`;
-          reject(new Error(hint + '\n' + String(stdout || '').slice(-16000) + '\n' + String(stderr || '').slice(-8000)));
+          const log = String(stdout || '').slice(-16000) + '\n' + String(stderr || '').slice(-8000);
+          if (error.code === 'ENOENT') reject(new LocalizedError('executableMissing', [file], log));
+          else if (error.killed) reject(new LocalizedError('timedOut', [timeout], log));
+          else reject(new LocalizedError('executableFailed', [path.basename(file)], log));
         } else resolve({ stdout, stderr });
       });
       this.children.add(child);
@@ -136,15 +139,15 @@ class Renderer {
     const request = { consumers: new Set([isActive]) };
     const active = () => [...request.consumers].some(consumer => consumer());
     const load = async () => {
-      if (this.disposed) throw new Error('插件已停止。');
+      if (this.disposed) throw new LocalizedError('stopped');
       const hit = this.cache.get(key);
       if (hit && await inputsUnchanged(hit.dependencies) && generation === this.generation) {
         this.cache.delete(key); this.cache.set(key, hit); this.lastConverter = hit.converter;
         return hit.pages;
       }
       const job = this.tail.then(async () => {
-        if (this.disposed) throw new Error('插件已停止。');
-        if (!active()) throw new Error('已取消过期的绘图请求。');
+        if (this.disposed) throw new LocalizedError('stopped');
+        if (!active()) throw new LocalizedError('outdated');
         const epoch = this.inputEpoch;
         // Filesystem timestamps have sub-millisecond precision; Date.now() is rounded.
         const started = Date.now() + 1;
@@ -181,7 +184,7 @@ class Renderer {
       const passes = Math.min(3, Math.max(1, Number(settings.passes) || 2));
       for (let pass = 0; pass < passes; pass++) {
         const result = await this.run(tex, ['-no-shell-escape', '-interaction=nonstopmode', '-halt-on-error', '-file-line-error', '-recorder', '-jobname=diagram', 'diagram.tex'], { cwd: dir, env }, timeout);
-        if (/Missing character:/.test(result.stdout + result.stderr)) throw new Error('字体缺少所需字符；中文请使用 XeLaTeX / LuaLaTeX 和 ctex。\n' + (result.stdout + result.stderr).slice(-12000));
+        if (/Missing character:/.test(result.stdout + result.stderr)) throw new LocalizedError('missingGlyphs', [], (result.stdout + result.stderr).slice(-12000));
         if (settings.adaptivePasses !== false && !needsAnotherPass(result.stdout + result.stderr)) break;
       }
       const pages = await this.convertWithFallback(converters, dir, env, timeout);
@@ -194,7 +197,7 @@ class Renderer {
     const preferred = this.converterChoices.get(group);
     const ordered = preferred ? [preferred, ...converters.filter(converter => converter !== preferred)] : converters;
     for (const converter of ordered) {
-      if (this.disposed) throw new Error('插件已停止。');
+      if (this.disposed) throw new LocalizedError('stopped');
       // A failed converter may leave partial output; never mix pages from two tools.
       for (const name of await fs.readdir(dir)) {
         if (/^page-\d+\.svg$/.test(name)) await fs.rm(path.join(dir, name));
@@ -206,10 +209,11 @@ class Renderer {
         if (this.converterChoices.size > 16) this.converterChoices.delete(this.converterChoices.keys().next().value);
         return pages;
       } catch (error) {
-        failures.push(`${converter}\n${error.message || error}`);
+        failures.push({ converter, error });
       }
     }
-    throw new Error('所有可用的 SVG 转换器均失败。\n\n' + failures.join('\n\n'));
+    throw new LocalizedError('allConvertersFailed', [], language =>
+      failures.map(({ converter, error }) => converter + '\n' + formatError(error, language)).join('\n\n'));
   }
   async convert(converter, dir, env, timeout) {
     const kind = path.basename(converter).toLowerCase().replace(/\.exe$/, '');
@@ -219,17 +223,17 @@ class Renderer {
       const infoPath = await executable('pdfinfo', path.join(path.dirname(converter), process.platform === 'win32' ? 'pdfinfo.exe' : 'pdfinfo'));
       const info = await this.run(infoPath, ['diagram.pdf'], { cwd: dir, env: { ...env, LC_ALL: 'C' } }, timeout);
       const match = /^Pages:\s+(\d+)/m.exec(info.stdout);
-      if (!match) throw new Error('pdfinfo 未返回 PDF 页数。');
+      if (!match) throw new LocalizedError('missingPageCount');
       let input = 'diagram.pdf';
       const fontError = /Missing language pack|Unknown font tag|No font in show|Couldn't find a font|failed to load.*font/i;
       for (let page = 1; page <= Number(match[1]); page++) {
         let result = await this.run(converter, ['-svg', '-f', String(page), '-l', String(page), input, `page-${page}.svg`], { cwd: dir, env }, timeout);
         if (fontError.test(result.stderr)) {
           // Portable Poppler installs may lack CJK CMaps. Outline fonts rather than silently dropping labels.
-          if (input !== 'diagram.pdf') throw new Error('SVG 转换丢失字体，已停止显示不完整图形。\n' + result.stderr);
+          if (input !== 'diagram.pdf') throw new LocalizedError('incompleteFonts', [], result.stderr);
           let gs;
           try { gs = await executable(process.platform === 'win32' ? 'gswin64c' : 'gs'); }
-          catch (_) { throw new Error('Poppler 缺少字体/CJK 映射。请安装完整 Poppler 数据包或 MuPDF；也可安装 Ghostscript 用于自动字体转轮廓。\n' + result.stderr); }
+          catch (_) { throw new LocalizedError('missingFontData', [], result.stderr); }
           await this.run(gs, ['-q', '-dSAFER', '-dBATCH', '-dNOPAUSE', '-dNoOutputFonts', '-sDEVICE=pdfwrite', '-sOutputFile=outlined.pdf', 'diagram.pdf'], { cwd: dir, env }, timeout);
           input = 'outlined.pdf';
           // Re-render earlier pages too so every page uses the same font treatment.
@@ -240,13 +244,13 @@ class Renderer {
       try {
         await this.run(converter, ['--pdf', '--page=1-', '--no-fonts', '--embed-bitmaps', '--output=page-%p.svg', 'diagram.pdf'], { cwd: dir, env }, timeout);
       } catch (error) {
-        throw new Error(error.message + '\n提示：新版 Ghostscript 无法替代 mutool；若 dvisvgm 报页数错误，请安装 MuPDF（mutool），或将转换器路径改为 pdftocairo。');
+        throw new LocalizedError('dvisvgmHint', [], language => formatError(error, language));
       }
     }
     const names = (await fs.readdir(dir)).filter(n => /^page-\d+\.svg$/.test(n)).sort((a, b) => Number(a.match(/\d+/)[0]) - Number(b.match(/\d+/)[0]));
-    if (!names.length) throw new Error('转换器未生成 SVG。请检查 dvisvgm 是否支持 PDF。');
+    if (!names.length) throw new LocalizedError('missingSvg');
     const pages = await Promise.all(names.map(n => fs.readFile(path.join(dir, n), 'utf8')));
-    if (pages.some(svg => !/<svg\b/.test(svg))) throw new Error('转换器生成了无效的 SVG。');
+    if (pages.some(svg => !/<svg\b/.test(svg))) throw new LocalizedError('invalidSvg');
     return pages;
   }
   async diagnose(settings) {
@@ -255,7 +259,7 @@ class Renderer {
     // Report the tool that actually rendered, including any automatic fallback.
     this.clear();
     await this.render('\\begin{tikzpicture}\\draw (0,0) -- (1,1);\\end{tikzpicture}', settings);
-    return `${tex}\n${a.stdout.split('\n')[0]}\n实际使用的 SVG 转换器：${this.lastConverter}\n基础编译与 PDF → SVG 转换通过。`;
+    return { tex, version: a.stdout.split('\n')[0], converter: this.lastConverter };
   }
 }
 module.exports = { Renderer, DEFAULTS, ENGINES, prepareSource, selectEngine, maskComments, needsAnotherPass };

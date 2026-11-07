@@ -2,9 +2,11 @@
 
 Render TikZ code blocks as SVG in Obsidian Desktop using your local LaTeX installation. TikZ Native supports snippets and full LaTeX documents, automatic PDF-to-SVG converter fallback, and transparent diagrams that adapt to dark mode without recompilation.
 
+Choose **Language / 界面语言** in the TikZ Native settings to switch between English and Simplified Chinese. New installations default to English. Existing saved settings without a language preference start in Chinese. Switching updates the interface without recompiling diagrams. Compiler and converter logs retain their original text.
+
 ## Requirements
 
-- Obsidian Desktop. The plugin interface is in Simplified Chinese.
+- Obsidian Desktop.
 - A local TeX distribution with TikZ and the `standalone` class. LuaLaTeX is the default and supports TikZ graph drawing. XeLaTeX and pdfLaTeX are also supported.
 - One PDF-to-SVG converter. Use MuPDF (`mutool`), Poppler (`pdftocairo` and `pdfinfo` in the same directory), or `dvisvgm` with a working PDF backend. If discovery fails, enter the executable paths in the plugin settings.
 
@@ -13,7 +15,7 @@ Render TikZ code blocks as SVG in Obsidian Desktop using your local LaTeX instal
 1. Download `main.js`, `manifest.json`, and `styles.css` from the GitHub release.
 2. Put them in the `.obsidian/plugins/tikz-native/` folder of your vault. Create the folder if needed.
 3. Reload Obsidian and enable **TikZ Native** under **Settings → Community plugins**. Disable TikZJax or any other plugin that also registers `tikz` blocks.
-4. In TikZ Native settings, turn on **开启本地编译** (Enable local compilation) for a vault whose content you trust. Use **检查编译环境** (Check compilation environment) to test the setup.
+4. In TikZ Native settings, turn on **Enable local compilation** (开启本地编译) for a vault whose content you trust. Use **Check compilation environment** (检查编译环境) to test the setup.
 
 ## Usage
 
@@ -36,7 +38,7 @@ The plugin locates system executables, writes compilation artifacts to an OS tem
 
 ## 中文快速入门
 
-把 Release 的三个文件放进笔记库的 `.obsidian/plugins/tikz-native/`，重载 Obsidian 并启用插件。仅在信任所有相关笔记的库中打开「开启本地编译」，再点「检查编译环境」。需要本机 LaTeX 和 PDF 转 SVG 工具。详情见 [兼容性示例](examples/兼容性示例.md)。
+把 Release 的三个文件放进笔记库的 `.obsidian/plugins/tikz-native/`，重载 Obsidian 并启用插件。在 TikZ Native 设置顶部选择「界面语言 / Language → 简体中文」。仅在信任所有相关笔记的库中打开「开启本地编译」，再点「检查编译环境」。需要本机 LaTeX 和 PDF 转 SVG 工具。详情见 [兼容性示例](examples/兼容性示例.md)。
 
 ## Build and test
 
