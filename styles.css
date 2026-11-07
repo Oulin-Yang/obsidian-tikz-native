@@ -9,6 +9,7 @@
 .tikz-native-status { color: var(--text-muted); }
 .tikz-native details { text-align: left; }
 .tikz-native pre, .tikz-native-diagnostics { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 26rem; overflow: auto; text-align: left; user-select: text; }
+.tikz-native-settings-title { display: flex; align-items: center; gap: .5rem; }
 @media print {
   .tikz-native .tikz-native-original { display: block !important; background: white; }
   .tikz-native .tikz-native-dark-image { display: none !important; }
