@@ -113,21 +113,46 @@ test('live system and app theme switches update images without compilation; unlo
     setAttribute(key,value){this.attrs[key]=value;} remove(){this.removed=true;}
   }
   class Adapter {getBasePath(){return '/vault';}}
-  class Plugin {async loadData(){return {enabled:true};}addSettingTab(){}addCommand(){}registerEvent(){}registerMarkdownCodeBlockProcessor(language,handler){if(language==='tikz')this.handler=handler;}}
+  class Plugin {
+    async loadData(){return {enabled:true, passes:3};}
+    async saveData(data){this.saved={...data};}
+    addSettingTab(){}
+    addCommand(command){this.command=command;}
+    removeCommand(id){assert.equal(id,this.command.id);this.command=null;}
+    registerEvent(){}
+    registerMarkdownCodeBlockProcessor(language,handler){if(language==='tikz')this.handler=handler;}
+  }
   class Child {constructor(el){this.containerEl=el;}}
   const module = {exports:{}};
   vm.runInNewContext(fs.readFileSync(require.resolve('../main.js'),'utf8'),{module,process,console,setTimeout,clearTimeout,require:name=>name==='obsidian'?{Plugin,PluginSettingTab:class{},MarkdownRenderChild:Child,FileSystemAdapter:Adapter}:require(name)});
   const plugin = new module.exports();plugin.app={vault:{adapter:new Adapter(),on(){}},workspace:{on(){}}};await plugin.onload();
+  const render = plugin.renderer.render.bind(plugin.renderer);
   plugin.renderer.render=async()=>{compileCalls++;return [svg('<ellipse fill="#ebebff" cx="50" cy="30" rx="40" ry="20"/><path fill="none" stroke="#000" d="M0 0L100 60"/>')];};
   let view;plugin.handler('source',new Element(),{sourcePath:'note.md',addChild(child){view=child;child.onload();}});await view.render();
   assert.equal(compileCalls,1);assert.equal(view.containerEl.classes.has('tikz-native-is-dark'),false);
   media.matches=true;for(const fn of mediaListeners)fn();assert.equal(view.containerEl.classes.has('tikz-native-is-dark'),true);
   const darkUrl=view.pages[0].darkImage.attrs.src;assert.ok((await urls.get(darkUrl).text()).includes('#dadada'));
+  assert.equal(view.pages[0].originalImage.attrs.alt, 'TikZ 图，第 1 页');
+  await plugin.setLanguage('en');
+  assert.equal(view.pages[0].originalImage.attrs.alt, 'TikZ diagram, page 1');
+  assert.equal(view.pages[0].darkImage.attrs.src, darkUrl);
+  assert.equal(plugin.command.name, 'Clear cache and render again');
+  assert.equal(plugin.saved.language, 'en');
+  assert.equal(plugin.saved.passes, 3);
+  assert.equal(compileCalls, 1);
   assert.equal(view.pages[0].darkImage.style.backgroundColor,undefined,'automatic mode must not paint a solid canvas behind the transparent SVG');
   assert.equal(view.pages[0].wrapper.classes.has('tikz-native-has-adapted'),true);assert.equal(view.pages[0].wrapper.classes.has('tikz-native-paper'),false);
   const created=urlId;media.matches=false;for(const fn of mediaListeners)fn();media.matches=true;for(const fn of mediaListeners)fn();assert.equal(urlId,created);
   plugin.settings.themeSource='obsidian';plugin.refreshAppearance();assert.equal(view.containerEl.classes.has('tikz-native-is-dark'),false);
   appDark=true;for(const observer of observers)observer.fn();assert.equal(view.containerEl.classes.has('tikz-native-is-dark'),true);
   plugin.settings.appearance='paper';plugin.refreshAppearance();assert.equal(view.pages[0].wrapper.classes.has('tikz-native-paper'),true);
-  assert.equal(compileCalls,1);view.onunload();assert.equal(mediaListeners.size,0);assert.ok(observers.every(o=>o.disconnected));assert.equal(urls.size,0);assert.equal(revoked.length,2);plugin.onunload();
+  assert.equal(compileCalls,1);
+  plugin.renderer.render = () => render('');
+  await view.render();
+  assert.equal(view.status.textContent, 'TikZ compilation failed');
+  assert.match(view.failure.log.textContent, /No drawing found/);
+  await plugin.setLanguage('zh');
+  assert.equal(view.status.textContent, 'TikZ 编译失败');
+  assert.match(view.failure.log.textContent, /未找到绘图内容/);
+  view.onunload();assert.equal(mediaListeners.size,0);assert.ok(observers.every(o=>o.disconnected));assert.equal(urls.size,0);assert.equal(revoked.length,2);plugin.onunload();
 });
