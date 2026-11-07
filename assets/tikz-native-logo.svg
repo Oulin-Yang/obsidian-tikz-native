@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">TikZ Native</title>
+  <desc id="desc">White code brackets frame a plotted function on a black tile.</desc>
+
+  <rect x="18" y="18" width="476" height="476" rx="111" fill="#000"/>
+  <rect x="21" y="21" width="470" height="470" rx="108" fill="none" stroke="#fff" stroke-width="4"/>
+
+  <g fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M135 200 83 256l52 56m242-112 52 56-52 56" stroke-width="19"/>
+    <path d="M181 174v158h154m-169-143 15-15 15 15m124 128 15 15-15 15" stroke-width="10"/>
+    <path d="M209 303c20 0 32-14 47-49s34-49 66-49" stroke-width="14"/>
+  </g>
+  <circle cx="256" cy="254" r="11" fill="#000" stroke="#fff" stroke-width="7"/>
+</svg>
