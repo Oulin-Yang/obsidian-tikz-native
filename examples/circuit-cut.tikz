@@ -1,0 +1,11 @@
+\begin{tikzpicture}[>=stealth,every node/.style={font=\small},v/.style={circle,draw}]
+\node[v] (x) at (0,1) {$x$}; \node[v] (y) at (3,1) {$y$};
+\draw[->,thick] (x)--node[above] {$u$}(y);
+\draw[->] (y) to[bend left=45] node[below] {path} (x);
+\node at (1.5,-.8) {$x\in M$: circuit};
+\draw[fill=blue!8] (8,1) ellipse (1.4 and 1.1);
+\node[v] (xx) at (5.3,1) {$x$}; \node[v] (yy) at (7.3,1) {$y$};
+\node at (8.4,1.4) {$M$};
+\draw[->,thick] (xx)--node[above] {$u$}(yy);
+\node at (7.3,-.8) {$x\notin M$, $\omega^+(M)=\varnothing$};
+\end{tikzpicture}

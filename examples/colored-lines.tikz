@@ -1,0 +1,6 @@
+\begin{tikzpicture}
+  \draw[->] (-0.2,0) -- (3.4,0) node[right] {$x$};
+  \draw[->] (0,-0.2) -- (0,2.6) node[above] {$y$};
+  \draw[red,very thick] plot[domain=0:3,samples=30] (\x,{0.22*\x*\x});
+  \draw[blue,very thick] plot[domain=0:3,samples=30] (\x,{2-0.4*\x});
+\end{tikzpicture}
