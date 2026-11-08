@@ -16,7 +16,7 @@ Choose **Language / 界面语言** in the TikZ Native settings to switch between
 
 1. Download `main.js`, `manifest.json`, and `styles.css` from the GitHub release.
 2. Put them in the `.obsidian/plugins/tikz-native/` folder of your vault. Create the folder if needed.
-3. Reload Obsidian and enable **TikZ Native** under **Settings → Community plugins**. Disable TikZJax or any other plugin that also registers `tikz` blocks.
+3. Reload Obsidian and enable **TikZ Native** under **Settings → Community plugins**. Disable other plugin that also registers `tikz` blocks.
 4. In TikZ Native settings, turn on **Enable local compilation** (开启本地编译) for a vault whose content you trust. Use **Check compilation environment** (检查编译环境) to test the setup.
 
 ## Usage
